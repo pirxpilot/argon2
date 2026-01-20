@@ -1,10 +1,9 @@
 [![NPM version][npm-image]][npm-url]
 [![Build Status][build-image]][build-url]
 [![Dependency Status][deps-image]][deps-url]
-# @pirxpilot/argon2
-
 [![Financial contributors on Open Collective][opencollective-image]][opencollective-url]
-[![Build status][actions-image]][actions-url]
+
+# @pirxpilot/argon2
 
 This is a fork of [node-argon2] that is using [`crypto.argon2`][crypto.argon2] implementation as described in [#469]
 It can be used with node >= 24.7.0
