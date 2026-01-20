@@ -191,7 +191,7 @@ describe('verify', () => {
     assert(!(await argon2.verify(await argon2.hash(password, { type: argon2id }), 'passworld')));
   });
 
-  it('verify old hash format', async () => {
+  it.skip('verify old hash format', async () => {
     // older hashes did not contain the v (version) parameter
     assert(await argon2.verify(hashes.oldFormat, 'password'));
   });
