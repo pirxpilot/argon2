@@ -15,10 +15,10 @@
   },
   "license": "MIT",
   "author": "Ranieri Althoff <ranisalt+argon2@gmail.com>",
-  "type": "commonjs",
-  "exports": "./argon2.cjs",
+  "type": "module",
+  "exports": "./argon2.js",
   "files": [
-    "argon2.cjs"
+    "argon2.js"
   ],
   "scripts": {
     "test": "make check"

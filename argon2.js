@@ -1,19 +1,15 @@
-const { randomBytes, timingSafeEqual, argon2 } = require('node:crypto');
-const { promisify } = require('node:util');
-const { deserialize, serialize } = require('@phc/format');
+import { argon2, randomBytes, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
+import { deserialize, serialize } from '@phc/format';
 
 const asyncArgon2 = promisify(argon2);
 
 /** @type {(size: number) => Promise<Buffer>} */
 const generateSalt = promisify(randomBytes);
 
-const argon2d = 0;
-const argon2i = 1;
-const argon2id = 2;
-
-module.exports.argon2d = argon2d;
-module.exports.argon2i = argon2i;
-module.exports.argon2id = argon2id;
+export const argon2d = 0;
+export const argon2i = 1;
+export const argon2id = 2;
 
 /** @enum {argon2i | argon2d | argon2id} */
 const types = Object.freeze({ argon2d, argon2i, argon2id });
@@ -67,7 +63,7 @@ const defaults = {
  * @param {Buffer | string} password The plaintext password to be hashed
  * @param {Options & { raw?: boolean }} [options] The parameters for Argon2
  */
-async function hash(password, options) {
+export async function hash(password, options) {
   let { raw, salt, ...rest } = { ...defaults, ...options };
 
   if (rest.hashLength > 2 ** 32 - 1) {
@@ -121,7 +117,6 @@ async function hash(password, options) {
     hash
   });
 }
-module.exports.hash = hash;
 
 /**
  * @param {string} digest The digest to be checked
@@ -132,7 +127,7 @@ module.exports.hash = hash;
  * @param {number} [options.version=0x13]
  * @returns {boolean} `true` if the digest parameters do not match the parameters in `options`, otherwise `false`
  */
-function needsRehash(digest, options = {}) {
+export function needsRehash(digest, options = {}) {
   const { memoryCost, timeCost, parallelism, version } = {
     ...defaults,
     ...options
@@ -145,7 +140,6 @@ function needsRehash(digest, options = {}) {
 
   return +v !== +version || +m !== +memoryCost || +t !== +timeCost || +p !== +parallelism;
 }
-module.exports.needsRehash = needsRehash;
 
 /**
  * @param {string} digest The digest to be checked
@@ -154,7 +148,7 @@ module.exports.needsRehash = needsRehash;
  * @param {Buffer} [options.secret]
  * @returns {Promise<boolean>} `true` if the digest parameters matches the hash generated from `password`, otherwise `false`
  */
-async function verify(digest, password, options = {}) {
+export async function verify(digest, password, options = {}) {
   const { id, ...rest } = deserialize(digest);
   if (!(id in types)) {
     return false;
@@ -182,5 +176,3 @@ async function verify(digest, password, options = {}) {
     hash
   );
 }
-module.exports.verify = verify;
-
