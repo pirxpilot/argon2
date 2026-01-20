@@ -1,29 +1,24 @@
-const { randomBytes, timingSafeEqual } = require("node:crypto");
-const { promisify } = require("node:util");
-const { deserialize, serialize } = require("@phc/format");
-const gypBuild = require("node-gyp-build");
+import { argon2, randomBytes, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
+import { deserialize, serialize } from '@phc/format';
 
-const { hash: bindingsHash } = gypBuild(__dirname);
+const asyncArgon2 = promisify(argon2);
 
 /** @type {(size: number) => Promise<Buffer>} */
 const generateSalt = promisify(randomBytes);
 
-const argon2d = 0;
-const argon2i = 1;
-const argon2id = 2;
-
-module.exports.argon2d = argon2d;
-module.exports.argon2i = argon2i;
-module.exports.argon2id = argon2id;
+export const argon2d = 0;
+export const argon2i = 1;
+export const argon2id = 2;
 
 /** @enum {argon2i | argon2d | argon2id} */
 const types = Object.freeze({ argon2d, argon2i, argon2id });
 
 /** @enum {'argon2d' | 'argon2i' | 'argon2id'} */
 const names = Object.freeze({
-  [types.argon2d]: "argon2d",
-  [types.argon2i]: "argon2i",
-  [types.argon2id]: "argon2id",
+  [types.argon2d]: 'argon2d',
+  [types.argon2i]: 'argon2i',
+  [types.argon2id]: 'argon2id'
 });
 
 const defaults = {
@@ -32,7 +27,7 @@ const defaults = {
   memoryCost: 1 << 16,
   parallelism: 4,
   type: argon2id,
-  version: 0x13,
+  version: 0x13
 };
 
 /**
@@ -68,23 +63,23 @@ const defaults = {
  * @param {Buffer | string} password The plaintext password to be hashed
  * @param {Options & { raw?: boolean }} [options] The parameters for Argon2
  */
-async function hash(password, options) {
+export async function hash(password, options) {
   let { raw, salt, ...rest } = { ...defaults, ...options };
 
   if (rest.hashLength > 2 ** 32 - 1) {
-    throw new RangeError("Hash length is too large");
+    throw new RangeError('Hash length is too large');
   }
 
   if (rest.memoryCost > 2 ** 32 - 1) {
-    throw new RangeError("Memory cost is too large");
+    throw new RangeError('Memory cost is too large');
   }
 
   if (rest.timeCost > 2 ** 32 - 1) {
-    throw new RangeError("Time cost is too large");
+    throw new RangeError('Time cost is too large');
   }
 
   if (rest.parallelism > 2 ** 24 - 1) {
-    throw new RangeError("Parallelism is too large");
+    throw new RangeError('Parallelism is too large');
   }
 
   salt = salt ?? (await generateSalt(16));
@@ -97,20 +92,18 @@ async function hash(password, options) {
     memoryCost: m,
     timeCost: t,
     parallelism: p,
-    associatedData: data = Buffer.alloc(0),
+    associatedData: data = Buffer.alloc(0)
   } = rest;
 
-  const hash = await bindingsHash({
-    password: Buffer.from(password),
-    salt,
+  const hash = await asyncArgon2(names[type], {
+    message: Buffer.from(password),
+    nonce: salt,
+    tagLength: hashLength,
     secret,
-    data,
-    hashLength,
-    m,
-    t,
-    p,
-    version,
-    type,
+    associatedData: data,
+    parallelism: p,
+    memory: m,
+    passes: t
   });
   if (raw) {
     return hash;
@@ -121,10 +114,9 @@ async function hash(password, options) {
     version,
     params: { m, t, p, ...(data.byteLength > 0 ? { data } : {}) },
     salt,
-    hash,
+    hash
   });
 }
-module.exports.hash = hash;
 
 /**
  * @param {string} digest The digest to be checked
@@ -135,25 +127,19 @@ module.exports.hash = hash;
  * @param {number} [options.version=0x13]
  * @returns {boolean} `true` if the digest parameters do not match the parameters in `options`, otherwise `false`
  */
-function needsRehash(digest, options = {}) {
+export function needsRehash(digest, options = {}) {
   const { memoryCost, timeCost, parallelism, version } = {
     ...defaults,
-    ...options,
+    ...options
   };
 
   const {
     version: v,
-    params: { m, t, p },
+    params: { m, t, p }
   } = deserialize(digest);
 
-  return (
-    +v !== +version ||
-    +m !== +memoryCost ||
-    +t !== +timeCost ||
-    +p !== +parallelism
-  );
+  return +v !== +version || +m !== +memoryCost || +t !== +timeCost || +p !== +parallelism;
 }
-module.exports.needsRehash = needsRehash;
 
 /**
  * @param {string} digest The digest to be checked
@@ -162,35 +148,31 @@ module.exports.needsRehash = needsRehash;
  * @param {Buffer} [options.secret]
  * @returns {Promise<boolean>} `true` if the digest parameters matches the hash generated from `password`, otherwise `false`
  */
-async function verify(digest, password, options = {}) {
+export async function verify(digest, password, options = {}) {
   const { id, ...rest } = deserialize(digest);
   if (!(id in types)) {
     return false;
   }
 
   const {
-    version = 0x10,
-    params: { m, t, p, data = "" },
+    params: { m, t, p, data = '' },
     salt,
-    hash,
+    hash
   } = rest;
 
   const { secret = Buffer.alloc(0) } = options;
 
   return timingSafeEqual(
-    await bindingsHash({
-      password: Buffer.from(password),
-      salt,
+    await asyncArgon2(names[types[id]], {
+      message: Buffer.from(password),
+      nonce: salt,
+      tagLength: hash.byteLength,
       secret,
-      data: Buffer.from(data, "base64"),
-      hashLength: hash.byteLength,
-      m: +m,
-      t: +t,
-      p: +p,
-      version: +version,
-      type: types[id],
+      associatedData: Buffer.from(data, 'base64'),
+      parallelism: p,
+      memory: m,
+      passes: t
     }),
-    hash,
+    hash
   );
 }
-module.exports.verify = verify;
