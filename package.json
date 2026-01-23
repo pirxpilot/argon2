@@ -17,8 +17,10 @@
   "author": "Ranieri Althoff <ranisalt+argon2@gmail.com>",
   "type": "module",
   "exports": "./argon2.js",
+  "types": "./argon2.d.ts",
   "files": [
-    "argon2.js"
+    "argon2.js",
+    "argon2.d.ts"
   ],
   "scripts": {
     "test": "make check"
