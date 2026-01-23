@@ -13,3 +13,10 @@ test-cov: TEST_OPTS := --experimental-test-coverage
 test-cov: test
 
 .PHONY: check format lint test test-cov
+
+%.d.ts: %.js
+	tsc $^ --declaration --allowJs --emitDeclarationOnly --outFile $@
+
+types: argon2.d.ts
+
+.PHONY: types
