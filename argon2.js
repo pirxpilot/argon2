@@ -2,6 +2,7 @@ import { argon2, randomBytes, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { deserialize, serialize } from '@phc/format';
 
+/** @type {(id: string, options: object) => Promise<Buffer>} */
 const asyncArgon2 = promisify(argon2);
 
 /** @type {(size: number) => Promise<Buffer>} */
@@ -11,15 +12,7 @@ export const argon2d = 0;
 export const argon2i = 1;
 export const argon2id = 2;
 
-/** @enum {argon2i | argon2d | argon2id} */
-const types = Object.freeze({ argon2d, argon2i, argon2id });
-
-/** @enum {'argon2d' | 'argon2i' | 'argon2id'} */
-const names = Object.freeze({
-  [types.argon2d]: 'argon2d',
-  [types.argon2i]: 'argon2i',
-  [types.argon2id]: 'argon2id'
-});
+const names = ['argon2d', 'argon2i', 'argon2id'];
 
 const defaults = {
   hashLength: 32,
@@ -36,8 +29,8 @@ const defaults = {
  * @property {number} [timeCost=3]
  * @property {number} [memoryCost=65536]
  * @property {number} [parallelism=4]
- * @property {keyof typeof names} [type=argon2id]
- * @property {number} [version=19]
+ * @property {argon2d | argon2i | argon2id} [type=argon2id]
+ * @property {number} [version=0x13]
  * @property {Buffer} [salt]
  * @property {Buffer} [associatedData]
  * @property {Buffer} [secret]
@@ -150,7 +143,8 @@ export function needsRehash(digest, options = {}) {
  */
 export async function verify(digest, password, options = {}) {
   const { id, ...rest } = deserialize(digest);
-  if (!(id in types)) {
+  if (!names.includes(id)) {
+    console.error(`Unknown Argon2 id: ${id}`);
     return false;
   }
 
@@ -163,7 +157,7 @@ export async function verify(digest, password, options = {}) {
   const { secret = Buffer.alloc(0) } = options;
 
   return timingSafeEqual(
-    await asyncArgon2(names[types[id]], {
+    await asyncArgon2(id, {
       message: Buffer.from(password),
       nonce: salt,
       tagLength: hash.byteLength,
