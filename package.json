@@ -29,7 +29,7 @@
     "@phc/format": "^1.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.11"
+    "@biomejs/biome": "2.5.3"
   },
   "engines": {
     "node": ">= 24.7.0"
